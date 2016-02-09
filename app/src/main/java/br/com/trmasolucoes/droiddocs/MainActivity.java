@@ -1,17 +1,24 @@
 package br.com.trmasolucoes.droiddocs;
 
-import android.graphics.Color;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.view.View;
+import android.text.InputType;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.EditText;
+import android.widget.Toast;
+
+import br.com.trmasolucoes.droiddocs.dao.FavoritesDao;
+import br.com.trmasolucoes.droiddocs.domain.Favorite;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -32,20 +39,75 @@ public class MainActivity extends AppCompatActivity {
         settings.setJavaScriptEnabled(true);
         settings.setCacheMode(WebSettings.LOAD_DEFAULT);
         settings.setAppCacheEnabled(true);
-        webView.loadUrl("http://developer.android.com/");
 
-        webView.setWebViewClient(new MyWebViewClient());
+        if (webView.getUrl() == null){
+            webView.loadUrl("http://developer.android.com/");
+        }
 
+        /** Verifico se veio alguma url dos favoritos */
+        Intent intent = getIntent();
+        if (intent != null){
+            Bundle bundle = intent.getExtras();
+            if (bundle != null){
+                webView.loadUrl(bundle.getString("link"));
+            }
+        }
 
+        webView.setWebViewClient(new WebViewClient(){
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                return false;
+            }
+        });
 
-       /* FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Pagina adicionada aos favoritos", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+
+                // Set up the input
+                final EditText input = new EditText(MainActivity.this);
+                // Specify the type of input expected; this, for example, sets the input as a password, and will mask the text
+                input.setInputType(InputType.TYPE_CLASS_TEXT);
+                builder.setView(input);
+
+                // 2. Chain together various setter methods to set the dialog characteristics
+                builder.setMessage("ADICIONE UM TÍTULO!")
+                        .setTitle("FAVORITOS")
+                        .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                /** Adiciona a página aso favoritos*/
+                                FavoritesDao favoritesDao = new FavoritesDao(MainActivity.this);
+
+                                Favorite favorite = favoritesDao.getFavotiteByLink(webView.getUrl());
+                                if (favorite.getLink() != null){
+                                    Toast.makeText(MainActivity.this, "Url já existe!", Toast.LENGTH_SHORT).show();
+                                }else {
+                                    favorite.setDesc(input.getText().toString());
+
+                                    /** Verifico se a descição é válida */
+                                    if (favorite.getDesc() == null || favorite.getDesc().equals("")){
+                                        Toast.makeText(MainActivity.this, "Insira um título para o favorito!", Toast.LENGTH_SHORT).show();
+                                    }else {
+                                        favorite.setLink(webView.getUrl());
+                                        favoritesDao.insert(favorite);
+                                        Toast.makeText(MainActivity.this, "FAVORITO ADICIONADO COM SUCESSO!", Toast.LENGTH_SHORT).show();
+                                    }
+                                }
+                            }
+                        })
+                        .setNegativeButton("Cancelar", new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                dialog.dismiss();
+                            }
+                        });
+
+                // 3. Get the AlertDialog from create()
+                AlertDialog dialog = builder.create();
+                dialog.show();
             }
-        });*/
+        });
     }
 
     @Override
@@ -63,18 +125,11 @@ public class MainActivity extends AppCompatActivity {
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        if (id == R.id.action_favorites) {
+            Intent intent = new Intent(MainActivity.this, FavoritesList.class);
+            startActivity(intent);
         }
 
         return super.onOptionsItemSelected(item);
-    }
-
-    private class MyWebViewClient extends WebViewClient{
-
-        @Override
-        public boolean shouldOverrideUrlLoading(WebView view, String url) {
-            return false;
-        }
     }
 }
