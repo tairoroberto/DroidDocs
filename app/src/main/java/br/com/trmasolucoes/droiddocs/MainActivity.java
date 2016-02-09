@@ -30,6 +30,8 @@ public class MainActivity extends AppCompatActivity {
         /** Setting to wwebview*/
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
+        settings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        settings.setAppCacheEnabled(true);
         webView.loadUrl("http://developer.android.com/");
 
         webView.setWebViewClient(new MyWebViewClient());
